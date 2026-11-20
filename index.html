@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="css/spaces.css?v=3">
+  <link rel="stylesheet" href="css/spaces.css?b=10">
 </head>
 <body>
   <div class="stage" id="stage">
@@ -38,6 +38,7 @@
       <section class="card stat" id="netCard">
         <div class="stat-head"><b class="big" id="testTotal">0</b><span class="stat-title">Service Tests<br>running now</span></div>
         <div class="tiles" id="testTiles"></div>
+        <div class="heat" id="heat"></div>
       </section>
       <section class="card onfloor">
         <h3>On This Floor:</h3>
@@ -58,6 +59,8 @@
       <span class="dock-sep"></span>
       <button class="dock-where" id="whereBtn"><span class="mascot" aria-hidden="true"></span>Where am I ?</button>
       <span class="dock-sep"></span>
+      <button class="dock-flow" id="flowBtn" aria-pressed="true"><span class="flow-ic" aria-hidden="true"><i></i><i></i><i></i></span>Data Flow</button>
+      <span class="dock-sep"></span>
       <button class="dock-reset" id="resetBtn"><span id="icReset"></span>Reset</button>
     </nav>
 
@@ -66,6 +69,8 @@
       <img class="pw-spaces" src="assets/cisco-spaces.png" alt="Cisco Spaces">
       <span class="pw-sep"></span>
       <img class="pw-te" src="assets/thousandeyes.png" alt="Cisco ThousandEyes">
+      <span class="pw-sep pw-webex-sep"></span>
+      <img class="pw-webex" src="assets/webex.png" alt="Webex by Cisco" onerror="this.previousElementSibling.remove(); this.remove()">
       <button class="pw-src" id="srcBtn" title="Data source"></button>
     </div>
 
@@ -77,6 +82,19 @@
     <div class="sheet" id="sheet" hidden></div>
     <div class="toast" id="toast" hidden></div>
   </div>
-  <script type="module" src="js/app.js?v=2"></script>
+  <!-- One build number for every module, so a deploy never mixes old and new files. Bump every b= on each change (sed -i "" "s/b=10/b=10/g" index.html). -->
+  <script type="importmap">
+  { "imports": {
+    "./js/app.js": "./js/app.js?b=10",
+    "./js/map3d.js": "./js/map3d.js?b=10",
+    "./js/flow3d.js": "./js/flow3d.js?b=10",
+    "./js/floor.js": "./js/floor.js?b=10",
+    "./js/icons.js": "./js/icons.js?b=10",
+    "./js/data/mock.js": "./js/data/mock.js?b=10",
+    "./js/data/te.js": "./js/data/te.js?b=10",
+    "./js/data/shape.js": "./js/data/shape.js?b=10"
+  } }
+  </script>
+  <script type="module" src="./js/app.js?b=10"></script>
 </body>
 </html>

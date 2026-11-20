@@ -13,8 +13,14 @@ const C = {
   desk: 0xecd4a8, chair: 0x2e3440, screen: 0x111418, core: 0xc4cad4, coreTop: 0xd7dce4,
   table: 0xd8b98c, plant: 0x5e9a52, rack: 0x232831, atrium: 0xdfe3e9,
 };
-const DEFAULT_VIEW = { tx: 0, tz: 2, dist: 162, pitch: 0.98, bearing: -0.22 };
-const PIN_BASE = 150;   // the camera distance at which pins are drawn at 1x
+// The dark "network" look each light colour turns into while Data Flow is on.
+const DARK = {
+  0xeef0f4: 0x172030, 0xb7bdc8: 0x0b111b, 0xffffff: 0x34465f, 0xe4e7ec: 0x1d2738, 0xecd4a8: 0x3b4a60, 0x2e3440: 0x121822,
+  0xc4cad4: 0x283447, 0xd7dce4: 0x31405a, 0xd8b98c: 0x3a485e, 0xb89a72: 0x2b3648, 0x5e9a52: 0x2c6e55, 0xdfe3e9: 0x1b2536,
+  0xf4f4f4: 0x2c3a50, 0xf2f2f2: 0x2c3a50,
+};
+const DEFAULT_VIEW = { tx: 0, tz: -14, dist: 196, pitch: 0.86, bearing: -0.18 };
+const PIN_BASE = 170;   // the camera distance at which pins are drawn at 1x
 
 export class FloorMap {
   constructor(host, floor, { onSelect } = {}) {
@@ -39,6 +45,9 @@ export class FloorMap {
     this.places = new Map();   // place id -> { vol, floor, edges, pin, status }
     this.pins = [];
     this.selected = null; this.filter = null;
+    this.hooks = [];
+    this.dark = 0; this.darkGoal = 0;   // 0 light (Spaces), 1 dark (network view)   // per-frame callbacks (dt seconds, time seconds), e.g. the data-flow layer
+    this.lastT = 0;
     this.build();
     this.bindControls();
     new ResizeObserver(() => this.resize()).observe(host);
@@ -49,8 +58,19 @@ export class FloorMap {
 
   // ── Scene ──
   box(w, h, d, color, x, y, z, opts = {}) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color, ...opts }));
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.theme(new THREE.MeshLambertMaterial({ color, ...opts })));
     m.position.set(x, y, z); this.scene.add(m); return m;
+  }
+
+  /** Register a material whose colour follows the light / dark theme (if its colour has a dark twin). */
+  theme(mat) {
+    const hex = mat.color.getHex();
+    if (DARK[hex] !== undefined) (this.themed = this.themed || []).push({ mat, light: new THREE.Color(hex), dark: new THREE.Color(DARK[hex]) });
+    return mat;
+  }
+  setDark(on) { this.darkGoal = on ? 1 : 0; }
+  applyTheme(k) {
+    for (const t of this.themed || []) t.mat.color.copy(t.light).lerp(t.dark, k);
   }
 
   build() {
@@ -137,7 +157,7 @@ export class FloorMap {
       }
     }
     const inst = (geo, color, list) => {
-      const m = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color }), list.length);
+      const m = new THREE.InstancedMesh(geo, this.theme(new THREE.MeshLambertMaterial({ color })), list.length);
       const o = new THREE.Object3D();
       list.forEach(([x, y, z], i) => { o.position.set(x, y, z); o.updateMatrix(); m.setMatrixAt(i, o.matrix); });
       this.scene.add(m);
@@ -149,13 +169,13 @@ export class FloorMap {
 
   addAtrium() {
     const a = this.floor.atrium;
-    const fl = new THREE.Mesh(new THREE.CylinderGeometry(a.r, a.r, 0.06, 64), new THREE.MeshLambertMaterial({ color: C.atrium }));
+    const fl = new THREE.Mesh(new THREE.CylinderGeometry(a.r, a.r, 0.06, 64), this.theme(new THREE.MeshLambertMaterial({ color: C.atrium })));
     fl.position.set(a.x, 0.1, a.z); this.scene.add(fl);
     // Curved wall with an opening facing south.
     const wall = new THREE.Mesh(new THREE.CylinderGeometry(a.r, a.r, 1.5, 64, 1, true, Math.PI * 0.62, Math.PI * 1.76),
-      new THREE.MeshLambertMaterial({ color: C.wall, side: THREE.DoubleSide }));
+      this.theme(new THREE.MeshLambertMaterial({ color: C.wall, side: THREE.DoubleSide })));
     wall.position.set(a.x, 0.75, a.z); this.scene.add(wall);
-    const inner = new THREE.Mesh(new THREE.CylinderGeometry(a.r * 0.45, a.r * 0.45, 1.1, 48, 1, true), new THREE.MeshLambertMaterial({ color: C.wall, side: THREE.DoubleSide }));
+    const inner = new THREE.Mesh(new THREE.CylinderGeometry(a.r * 0.45, a.r * 0.45, 1.1, 48, 1, true), this.theme(new THREE.MeshLambertMaterial({ color: C.wall, side: THREE.DoubleSide })));
     inner.position.set(a.x, 0.55, a.z); this.scene.add(inner);
     this.box(4.5, 2.2, 0.25, C.screen, a.x, 1.2, a.z - a.r + 1.2);   // the demo wall
   }
@@ -164,14 +184,14 @@ export class FloorMap {
     const c = this.floor.cafe;
     this.box(c.w, 1.05, 1.1, 0xf4f4f4, c.x, 0.53, c.z - c.d / 2);
     for (let i = 0; i < 4; i++) {
-      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.08, 20), new THREE.MeshLambertMaterial({ color: C.table }));
+      const t = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.08, 20), this.theme(new THREE.MeshLambertMaterial({ color: C.table })));
       t.position.set(c.x - 4.5 + i * 3, 0.76, c.z + 1); this.scene.add(t);
       for (const s of [-1, 1]) this.box(0.55, 0.5, 0.55, C.chair, c.x - 4.5 + i * 3 + s * 1.05, 0.28, c.z + 1);
     }
   }
 
   addPlants() {
-    const geo = new THREE.IcosahedronGeometry(0.75, 0), mat = new THREE.MeshLambertMaterial({ color: C.plant, flatShading: true });
+    const geo = new THREE.IcosahedronGeometry(0.75, 0), mat = this.theme(new THREE.MeshLambertMaterial({ color: C.plant, flatShading: true }));
     for (const [x, z] of [[-40, -18], [-20, -18], [20, -18], [40, -18], [-8, 21], [36, 21], [44, 8], [-40, 8], [18, 6], [-18, -10]]) {
       const p = new THREE.Mesh(geo, mat); p.position.set(x, 0.9, z); this.scene.add(p);
       this.box(0.6, 0.5, 0.6, 0xf2f2f2, x, 0.25, z);
@@ -179,8 +199,11 @@ export class FloorMap {
   }
 
   // ── Pins (HTML, positioned every frame) ──
+  /** An HTML element that follows a point in the scene. Returns the pin ({ el, p, off }). */
+  addPin(el, p) { this.pinLayer.appendChild(el); const pin = { el, p, off: false }; this.pins.push(pin); return pin; }
+
   addPins() {
-    const add = (el, x, y, z, place) => { this.pinLayer.appendChild(el); this.pins.push({ el, p: new THREE.Vector3(x, y, z), place }); return el; };
+    const add = (el, x, y, z, place) => { this.addPin(el, new THREE.Vector3(x, y, z)).place = place; return el; };
     for (const r of this.floor.rooms) {
       const el = document.createElement('button');
       el.className = 'pin pin-room' + (r.agent ? '' : ' no-agent');
@@ -245,7 +268,8 @@ export class FloorMap {
     this.selected = id;
     this.restyle();
     const pl = id && this.places.get(id);
-    if (pl) this.flyTo({ tx: pl.r.x, tz: pl.r.z + 2, dist: 92, pitch: 0.98, bearing: this.goal.bearing });
+    // Frame the room and its path out of the building to the services beyond.
+    if (pl) this.flyTo({ tx: pl.r.x * 0.55, tz: (pl.r.z - 44) / 2, dist: 165, pitch: 0.8, bearing: this.goal.bearing });
     if (fromMap) this.onSelect(id);
   }
 
@@ -337,7 +361,10 @@ export class FloorMap {
   }
   setInset(x, y) { this.inset = { x, y }; }
 
-  frame() {
+  frame(now = 0) {
+    const dt = Math.min(0.1, Math.max(0, (now - this.lastT) / 1000)); this.lastT = now;
+    for (const h of this.hooks) h(dt, now / 1000);
+    if (Math.abs(this.dark - this.darkGoal) > 0.002) { this.dark += (this.darkGoal - this.dark) * Math.min(1, dt * 3.2); this.applyTheme(this.dark); }
     const v = this.view, g = this.goal, k = 0.12;
     if (Math.abs(this.insetNow.x - this.inset.x) > 0.01 || Math.abs(this.insetNow.y - this.inset.y) > 0.01) {
       this.insetNow.x += (this.inset.x - this.insetNow.x) * k; this.insetNow.y += (this.inset.y - this.insetNow.y) * k;
@@ -358,7 +385,7 @@ export class FloorMap {
     for (const pin of this.pins) {
       q.copy(pin.p).project(this.camera);
       const x = (q.x + 1) / 2 * w, y = (1 - q.y) / 2 * h;
-      const off = q.z > 1 || x < -60 || x > w + 60 || y < -60 || y > h + 60;
+      const off = pin.off || q.z > 1 || x < -60 || x > w + 60 || y < -60 || y > h + 60;
       pin.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) scale(${s.toFixed(3)})`;
       pin.el.style.visibility = off ? 'hidden' : '';
       pin.el.style.zIndex = String(Math.round((1 - q.z) * 100000));

@@ -3,6 +3,7 @@
 //   ?data=te&site=lab    real data: sites/lab.json + a token entered on the device
 import { FLOOR } from './floor.js';
 import { FloorMap } from './map3d.js';
+import { FlowLayer } from './flow3d.js';
 import { MockSource } from './data/mock.js';
 import { TESource, teToken } from './data/te.js';
 import { STATUS, LIMITS } from './data/shape.js';
@@ -33,6 +34,11 @@ async function makeSource() {
 
 // ── Map ──
 const map = new FloorMap($('map'), FLOOR, { onSelect: (id) => openDetail(id) });
+const flow = new FlowLayer(map);
+let flowOn = true;
+try { flowOn = localStorage.getItem('tesv-flow') !== '0'; } catch (_) { /* default on */ }
+flow.setOn(flowOn);
+window.TESV = { map, flow };   // for poking at from the console
 
 // ── Render: KPIs ──
 function gauge(frac, color) {
@@ -66,6 +72,7 @@ function renderTiles(k, snap) {
   $('testTotal').textContent = tests.length;
   $('testTiles').className = 'tiles three';
   $('testTiles').innerHTML = `<div class="tile healthy"><b>${n('healthy')}</b><small>Passing</small></div><div class="tile degraded"><b>${n('degraded')}</b><small>Warning</small></div><div class="tile critical"><b>${n('critical')}</b><small>Failing</small></div>`;
+  $('heat').innerHTML = heatmap(snap);
   $('hideBtn').innerHTML = (S.hidden ? ICON.eye + 'View' : ICON.eyeOff + 'Hide');
 }
 
@@ -74,6 +81,29 @@ function applyMap() {
   if (!S.hidden) for (const a of S.snap.agents) byPlace[a.place] = a.status === 'nodata' ? 'offline' : a.status;
   map.setStatus(byPlace);
   map.setFilter(S.filter ? (id, st) => st === S.filter : null);
+}
+
+// Service x time: each cell is the average latency (and loss) across the floor's agents.
+function heatmap(snap) {
+  const svcs = [];
+  for (const a of snap.agents) for (const t of a.tests) if (!svcs.find((x) => x.id === t.id)) svcs.push({ id: t.id, name: t.name });
+  const cols = 24;
+  const cell = (v, l) => (v == null ? '#2a303b' : l >= LIMITS.loss[1] || v >= LIMITS.latency[1] ? '#ff4757' : l >= LIMITS.loss[0] || v >= LIMITS.latency[0] ? '#ffb020' : `rgba(56,217,255,${(0.25 + Math.min(1, v / LIMITS.latency[0]) * 0.6).toFixed(2)})`);
+  let rows = '';
+  for (const s of svcs) {
+    const tests = snap.agents.filter((a) => a.status !== 'offline').map((a) => a.tests.find((t) => t.id === s.id)).filter(Boolean);
+    let cells = '';
+    for (let i = 0; i < cols; i++) {
+      const lat = tests.map((t) => t.series.latency[t.series.latency.length - cols + i]).filter((v) => v != null);
+      const los = tests.map((t) => t.series.loss[t.series.loss.length - cols + i]).filter((v) => v != null);
+      const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
+      // Show the worse half of the floor, so a wing-wide problem isn't averaged away.
+      const top = (xs) => { const s2 = [...xs].sort((a, b) => b - a); return avg(s2.slice(0, Math.max(1, Math.ceil(s2.length / 3)))); };
+      cells += `<i style="background:${cell(top(lat), top(los))}"></i>`;
+    }
+    rows += `<div class="hm-row"><span>${esc(s.name.replace('Meetings', '').replace(' (DC1)', '').trim())}</span><div class="hm-cells">${cells}</div></div>`;
+  }
+  return `<div class="hm-head"><b>Service health</b><small>last 2 hours</small></div>${rows}<div class="hm-axis"><span>-2h</span><span>-1h</span><span>now</span></div>`;
 }
 
 // ── Alerts pill ──
@@ -113,6 +143,12 @@ function openDetail(placeId) {
   S.open = placeId;
   const el = $('detail');
   map.setInset(placeId ? -14 : 3.5, 1.2);
+  const fa = placeId && agentAt(placeId);
+  if (!S.running && flow.focusId !== (fa ? fa.id : null)) {
+    flow.focus(fa ? fa.id : null);
+    const v = flowOn && fa && flow.frame();
+    if (v) map.flyTo(v);
+  }
   if (!placeId) { el.hidden = true; return; }
   const pl = placeOf(placeId); if (!pl) { el.hidden = true; return; }
   const a = agentAt(placeId);
@@ -159,7 +195,7 @@ function openDetail(placeId) {
       ${a.tests.map((t) => `<tr><td><span class="dot" style="background:${STATUS[t.status === 'nodata' ? 'offline' : t.status].color}"></span>${esc(t.name)}<small>${esc(t.target)}</small></td>
         <td class="${cls(statusOfOne(t.latency, LIMITS.latency))}">${fmt(t.latency, 'ms')}</td><td class="${cls(statusOfOne(t.loss, LIMITS.loss))}">${fmt(t.loss, '%', 1)}</td><td class="${cls(statusOfOne(t.jitter, LIMITS.jitter))}">${fmt(t.jitter, 'ms', 1)}</td></tr>`).join('')}
       </table></div>
-    ${a.path && a.path.length ? `<div class="d-sec"><h4>Path to ${esc(main.name)} <small>Path Visualization</small></h4><div class="path">${a.path.map((h) => `<div class="hop${h.hot ? ' hot' : ''}"><b>${esc(h.name)}</b><small>${esc(h.owner)}</small><em>${h.ms} ms</em></div>`).join('')}</div></div>` : ''}
+    ${a.path && a.path.length ? `<div class="d-sec"><h4>Path to ${esc(main.name)} <small>Path Visualization · ${a.path.length} hops</small></h4>${pathVis(a.path, main)}</div>` : ''}
     <div class="d-sec d-meta"><div>Agent<b>${esc(a.name)}</b></div><div>IP address<b>${esc(a.ip || '—')}</b></div><div>Version<b>${esc(a.version || '—')}</b></div></div>
     <div class="d-src">Data source: ${esc(S.snap.source)} · updated ${hhmm(new Date(S.snap.t))}</div>
     <div class="d-cta"><div><b>Want to check it now?</b><small>Run a ThousandEyes instant test from this agent.</small><div class="run-step" id="runStep">${running ? esc(S.running.step) : ''}</div></div>
@@ -169,12 +205,38 @@ function openDetail(placeId) {
   if (st === 'offline') btn.title = 'The agent is offline';
   btn.onclick = () => runTest(a);
 }
+// The card's path: nodes left to right, links sized by the latency each hop adds, traffic flowing along them.
+function pathVis(path, test) {
+  const W = 600, H = 132, n = path.length, x = (i) => 30 + i * (W - 60) / (n - 1), y = 52;
+  const kind = (i) => (i === 0 ? 'agent' : i === n - 1 ? 'svc' : path[i].owner === 'This site' ? 'lan' : 'net');
+  const glyph = { agent: ICON.roomDevice, lan: ICON.switch, net: ICON.agents, svc: ICON.te };
+  let links = '', nodes = '';
+  for (let i = 1; i < n; i++) {
+    const add = Math.max(0, path[i].ms - path[i - 1].ms), hot = path[i].hot, w = Math.min(9, 2 + add / 18);
+    const c = hot ? '#ff4757' : add > 40 ? '#ffb020' : '#38d9ff';
+    links += `<line x1="${x(i - 1) + 16}" y1="${y}" x2="${x(i) - 16}" y2="${y}" stroke="${c}" stroke-opacity=".25" stroke-width="${w + 4}" stroke-linecap="round"/>`
+      + `<line class="flowdash${hot ? ' slow' : ''}" x1="${x(i - 1) + 16}" y1="${y}" x2="${x(i) - 16}" y2="${y}" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-dasharray="2 9"/>`
+      + `<text x="${(x(i - 1) + x(i)) / 2}" y="${y - 14}" fill="${c}" font-size="12" font-weight="700" text-anchor="middle">+${add.toFixed(add < 10 ? 1 : 0)} ms</text>`
+      + (hot && test.loss > 0.5 ? `<text x="${(x(i - 1) + x(i)) / 2}" y="${y + 24}" fill="#ff8a95" font-size="11" font-weight="700" text-anchor="middle">${test.loss.toFixed(1)}% loss</text>` : '');
+  }
+  path.forEach((h, i) => {
+    const k = kind(i), c = h.hot ? '#ff4757' : '#38d9ff';
+    nodes += `<g transform="translate(${x(i)} ${y})"><circle r="17" fill="#0d1520" stroke="${c}" stroke-width="2"/>${h.hot ? '<circle r="17" fill="none" stroke="#ff4757" stroke-width="2" class="hotring"/>' : ''}`
+      + `<g transform="translate(-9 -9) scale(.75)" color="#e6f6ff">${glyph[k].replace('<svg ', '<svg width="24" height="24" ')}</g></g>`
+      + `<text x="${x(i)}" y="${y + 36 + (i % 2) * 0}" fill="#e4e8ef" font-size="11" font-weight="600" text-anchor="middle">${esc(short(h.name))}</text>`
+      + `<text x="${x(i)}" y="${y + 50}" fill="#6b7383" font-size="10" text-anchor="middle">${esc(short(h.owner, 14))}</text>`;
+  });
+  return `<svg class="pathvis" viewBox="0 0 ${W} ${H}">${links}${nodes}</svg>`;
+}
+function short(s, n = 13) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
 function statusOfOne(v, [a, b]) { return v == null ? 'nodata' : v >= b ? 'critical' : v >= a ? 'degraded' : 'healthy'; }
-function closeDetail() { S.open = null; $('detail').hidden = true; map.setInset(3.5, 1.2); map.select(null); }
+function closeDetail() { S.open = null; $('detail').hidden = true; map.setInset(3.5, 1.2); map.select(null); flow.focus(null); }
 
 async function runTest(a) {
   if (S.running) return;
   S.running = { id: a.id, p: 0, step: 'Starting…' };
+  flow.trace(a.id, 4600);
   openDetail(S.open);
   try {
     const fresh = await source.instantTest(a.id, (p, step) => {
@@ -226,6 +288,9 @@ function goPoi(i) {
 
 // ── Buttons ──
 $('whereBtn').onclick = () => { closeDetail(); map.whereAmI(); };
+function showFlowBtn() { $('flowBtn').setAttribute('aria-pressed', String(flowOn)); }
+$('flowBtn').onclick = () => { flowOn = !flowOn; flow.setOn(flowOn); showFlowBtn(); try { localStorage.setItem('tesv-flow', flowOn ? '1' : '0'); } catch (_) { /* */ } };
+showFlowBtn();
 $('resetBtn').onclick = () => { closeDetail(); closeSearch(); S.filter = null; map.reset(); render(); };
 $('poiGrid').onclick = (e) => { const b = e.target.closest('button'); if (b) goPoi(+b.dataset.i); };
 $('agentTiles').onclick = (e) => { const t = e.target.closest('.tile'); if (!t) return; S.filter = S.filter === t.dataset.f ? null : t.dataset.f; render(); };
@@ -314,6 +379,7 @@ function render() {
   renderKpis(S.snap.kpis, S.snap.alerts);
   renderTiles(S.snap.kpis, S.snap);
   applyMap();
+  flow.setData(S.snap);
   renderAlert();
   if (S.open && !S.running) openDetail(S.open);
   $('srcBtn').textContent = S.snap.source === 'ThousandEyes' ? '● Live: ThousandEyes' : 'Mock data';
