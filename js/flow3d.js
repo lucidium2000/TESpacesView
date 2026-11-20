@@ -18,8 +18,8 @@ const TRAY_Y = 3.1;
 // How busy the flow looks. ?flow=full brings back the original, busier look.
 const FULL = new URLSearchParams(location.search).get('flow') === 'full';
 const FLOW = FULL
-  ? { perTrack: 9, size: 5.2, alpha: 1, trip: 2.6, spark: 9, rippleEvery: 3, ripple: 0.55, sweep: 1 }
-  : { perTrack: 4, size: 3.6, alpha: 0.7, trip: 4.2, spark: 5, rippleEvery: 6, ripple: 0.3, sweep: 0.5 };
+  ? { perTrack: 9, size: 5.2, alpha: 1, trip: 2.6, spark: 9, rippleEvery: 3, ripple: 0.55, sweep: 1, swirl: 0.45, wave: 26, die: 0.9 }
+  : { perTrack: 3, size: 3.0, alpha: 0.55, trip: 9, spark: 2.5, rippleEvery: 9, ripple: 0.18, sweep: 0.35, swirl: 0.18, wave: 10, die: 1.8 };
 const EAST = new Set(['paris', 'oslo', 'beijing', 'toronto', 'tokyo', 'mexico', 'sf', 'idf2']);
 
 // Places beyond the building (x, y, z). The services sit in a row above the far side.
@@ -50,6 +50,7 @@ function ringTexture() {
   g.fillStyle = r; g.fillRect(0, 0, 128, 128);
   return new THREE.CanvasTexture(c);
 }
+const smooth = (x) => { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); };
 const v3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
 const add = (mat) => Object.assign(mat, { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
 
@@ -106,9 +107,9 @@ export class FlowLayer {
           float fade = 1.0 - smoothstep(30.0, 230.0, r);
           float g = grid(vP, 4.0) * 0.22 + grid(vP, 20.0) * 0.35;
           float ang = atan(vP.y + 20.0, vP.x);
-          float sw = mod(ang - uTime * 0.45, 6.28318);
+          float sw = mod(ang - uTime * ${FLOW.swirl.toFixed(2)}, 6.28318);
           float sweep = (exp(-sw * 2.4) * 0.55 + exp(-sw * 14.0) * 0.6) * ${FLOW.sweep.toFixed(2)};
-          float ring = exp(-pow((r - mod(uTime * 26.0, 240.0)) / 3.0, 2.0)) * 0.35;
+          float ring = exp(-pow((r - mod(uTime * ${FLOW.wave.toFixed(1)}, 240.0)) / 3.0, 2.0)) * 0.35;
           vec3 c = vec3(0.16, 0.55, 1.0) * (g * (0.55 + sweep) + sweep * 0.08 + ring * (0.4 + g));
           gl_FragColor = vec4(c * fade, 1.0);
         }`,
@@ -422,9 +423,10 @@ export class FlowLayer {
     // Ripples: one per test round, every ~3 s.
     for (const rp of this.ripples) {
       const k = ((t + rp.phase) % FLOW.rippleEvery) / FLOW.rippleEvery;
-      rp.m.scale.setScalar(1 + k * 13); rp.m.material.opacity = (1 - k) * FLOW.ripple * (this.focusId && this.focusId !== rp.id ? 0.2 : 1);
+      const e = Math.min(1, k * 2), ease = 1 - Math.pow(1 - e, 3);   // expand over half the round, then rest
+      rp.m.scale.setScalar(1 + ease * 11); rp.m.material.opacity = (e >= 1 ? 0 : Math.sin(e * Math.PI) * (1 - e)) * FLOW.ripple * 1.6 * (this.focusId && this.focusId !== rp.id ? 0.2 : 1);
     }
-    for (const s of this.scans) { const k = (t * 0.6) % 1; s.m.position.y = 0.2 + k * 2.4; s.m.material.opacity = 0.45 * (1 - k); }
+    for (const s of this.scans) { const k = (t * 0.25) % 1; s.m.position.y = 0.2 + k * 2.4; s.m.material.opacity = 0.3 * Math.sin(k * Math.PI); }
     // Particles.
     const q = new THREE.Vector3(), dim = !!this.focusId;
     this.points.material.uniforms.uScale.value = this.map.renderer.domElement.height * 0.5;
@@ -435,7 +437,7 @@ export class FlowLayer {
         if (p.dying <= 0) this.spawn(p);
       } else {
         p.s += p.speed * dt;
-        if (p.drop > 0 && p.s >= p.drop) { p.dying = 0.9; p.s = p.drop; }
+        if (p.drop > 0 && p.s >= p.drop) { p.dying = FLOW.die; p.s = p.drop; }
         if (p.s >= p.tr.len) this.spawn(p);
         // Without the sky, traffic rises out of the MDF and fades away above the building.
         else if (!this.sky && !this.upOk(p.tr) && p.s > p.tr.ispDist + 4) this.spawn(p);
@@ -444,9 +446,9 @@ export class FlowLayer {
       const c = p.dying > 0 ? COL.critical : COL[p.status] || COL.healthy;
       const mine = !dim || p.tr.agent === this.focusId;
       let alpha = p.off ? 0 : mine ? FLOW.alpha : 0.06, size = FLOW.size;
-      if (p.dying > 0) { alpha *= p.dying / 0.9; size = FLOW.size + (0.9 - p.dying) * FLOW.spark; q.y += (0.9 - p.dying) * 1.5; }
-      let fadeIn = Math.min(1, p.s / 2);
-      if (!this.sky && !this.upOk(p.tr) && p.dying <= 0) fadeIn *= Math.max(0, Math.min(1, (p.tr.ispDist + 4 - p.s) / 7));
+      if (p.dying > 0) { const g = 1 - p.dying / FLOW.die; alpha *= Math.cos(g * Math.PI / 2); size = FLOW.size + g * FLOW.spark; q.y += g * 0.8; }
+      let fadeIn = smooth(p.s / 6) * smooth((p.tr.len - p.s) / 6);
+      if (!this.sky && !this.upOk(p.tr) && p.dying <= 0) fadeIn *= smooth((p.tr.ispDist + 4 - p.s) / 9);
       this.pPos[i * 3] = q.x; this.pPos[i * 3 + 1] = q.y; this.pPos[i * 3 + 2] = q.z;
       this.pCol[i * 3] = c.r; this.pCol[i * 3 + 1] = c.g; this.pCol[i * 3 + 2] = c.b;
       this.pSize[i] = size * (p.tr.agent === this.focusId ? 1.5 : 1); this.pAlpha[i] = alpha * fadeIn;
