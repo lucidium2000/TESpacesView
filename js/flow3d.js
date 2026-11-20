@@ -14,6 +14,12 @@ import * as THREE from '../vendor/three.module.min.js';
 
 const COL = { healthy: new THREE.Color('#38d9ff'), degraded: new THREE.Color('#ffb020'), critical: new THREE.Color('#ff4757'), offline: new THREE.Color('#5d6575'), nodata: new THREE.Color('#5d6575') };
 const TRAY_Y = 3.1;
+
+// How busy the flow looks. ?flow=full brings back the original, busier look.
+const FULL = new URLSearchParams(location.search).get('flow') === 'full';
+const FLOW = FULL
+  ? { perTrack: 9, size: 5.2, alpha: 1, trip: 2.6, spark: 9, rippleEvery: 3, ripple: 0.55, sweep: 1 }
+  : { perTrack: 4, size: 3.6, alpha: 0.7, trip: 4.2, spark: 5, rippleEvery: 6, ripple: 0.3, sweep: 0.5 };
 const EAST = new Set(['paris', 'oslo', 'beijing', 'toronto', 'tokyo', 'mexico', 'sf', 'idf2']);
 
 // Places beyond the building (x, y, z). The services sit in a row above the far side.
@@ -98,7 +104,7 @@ export class FlowLayer {
           float g = grid(vP, 4.0) * 0.22 + grid(vP, 20.0) * 0.35;
           float ang = atan(vP.y + 20.0, vP.x);
           float sw = mod(ang - uTime * 0.45, 6.28318);
-          float sweep = exp(-sw * 2.4) * 0.55 + exp(-sw * 14.0) * 0.6;
+          float sweep = (exp(-sw * 2.4) * 0.55 + exp(-sw * 14.0) * 0.6) * ${FLOW.sweep.toFixed(2)};
           float ring = exp(-pow((r - mod(uTime * 26.0, 240.0)) / 3.0, 2.0)) * 0.35;
           vec3 c = vec3(0.16, 0.55, 1.0) * (g * (0.55 + sweep) + sweep * 0.08 + ring * (0.4 + g));
           gl_FragColor = vec4(c * fade, 1.0);
@@ -199,7 +205,7 @@ export class FlowLayer {
       const m = new THREE.Mesh(geo, add(new THREE.MeshBasicMaterial({ color: color.clone(), opacity })));
       this.group.add(m); this.dynamic.push(m); return m;
     };
-    for (const [id, r] of this.routes) this.tubes.set('a:' + id, tube(r.floor, 0.07, COL[r.agent.status] || COL.healthy, 0.28));
+    for (const [id, r] of this.routes) this.tubes.set('a:' + id, tube(r.floor, 0.07, COL[r.agent.status] || COL.healthy, 0.22));
     const used = new Set();
     for (const r of this.routes.values()) for (const t of r.agent.tests) used.add(r.ispKey + ':' + t.id);
     for (const k of used) if (this.uplinks.has(k)) this.tubes.set('u:' + k, tube(this.uplinks.get(k), 0.12, COL.healthy, 0.22));
@@ -221,7 +227,7 @@ export class FlowLayer {
   }
 
   buildParticles() {
-    const N = Math.min(1400, this.tracks.length * 9);
+    const N = Math.min(1400, this.tracks.length * FLOW.perTrack);
     if (this.points) { this.group.remove(this.points); this.points.geometry.dispose(); }
     const geo = new THREE.BufferGeometry();
     this.pPos = new Float32Array(N * 3); this.pCol = new Float32Array(N * 3); this.pSize = new Float32Array(N); this.pAlpha = new Float32Array(N);
@@ -250,7 +256,7 @@ export class FlowLayer {
     const t = ag && ag.tests.find((x) => x.id === tr.test);
     p.status = ag && ag.status === 'offline' ? 'offline' : (t ? t.status : 'healthy');
     const lat = (t && t.latency) || 30;
-    p.speed = tr.len / (2.6 + lat / 75) * (0.85 + Math.random() * 0.3);   // slower when latency is high
+    p.speed = tr.len / (FLOW.trip + lat / 60) * (0.85 + Math.random() * 0.3);   // slower when latency is high
     if (t && t.loss > 0.3 && Math.random() < Math.min(0.85, t.loss / 6)) p.drop = tr.ispDist + Math.random() * 8;   // lost at the ISP
     p.off = p.status === 'offline';
     return p;
@@ -339,7 +345,7 @@ export class FlowLayer {
     const r = id && this.routes && this.routes.get(id);
     for (const [k, tb] of this.tubes || []) {
       const mine = r && (k === 'a:' + id || k.startsWith('u:' + r.ispKey + ':webex') || k === 'u:' + r.ispKey + ':' + (r.agent.tests[0] || {}).id);
-      tb.material.opacity = !r ? (k.startsWith('a:') ? 0.28 : 0.22) : mine ? 0.75 : 0.05;
+      tb.material.opacity = !r ? (k.startsWith('a:') ? 0.22 : 0.18) : mine ? 0.75 : 0.05;
     }
     if (!r) return;
     const a = r.agent;
@@ -407,10 +413,10 @@ export class FlowLayer {
     this.group.visible = this.on;
     // Ripples: one per test round, every ~3 s.
     for (const rp of this.ripples) {
-      const k = ((t + rp.phase) % 3) / 3;
-      rp.m.scale.setScalar(1 + k * 13); rp.m.material.opacity = (1 - k) * 0.55 * (this.focusId && this.focusId !== rp.id ? 0.2 : 1);
+      const k = ((t + rp.phase) % FLOW.rippleEvery) / FLOW.rippleEvery;
+      rp.m.scale.setScalar(1 + k * 13); rp.m.material.opacity = (1 - k) * FLOW.ripple * (this.focusId && this.focusId !== rp.id ? 0.2 : 1);
     }
-    for (const s of this.scans) { const k = (t * 0.6) % 1; s.m.position.y = 0.2 + k * 2.4; s.m.material.opacity = 0.75 * (1 - k); }
+    for (const s of this.scans) { const k = (t * 0.6) % 1; s.m.position.y = 0.2 + k * 2.4; s.m.material.opacity = 0.45 * (1 - k); }
     // Particles.
     const q = new THREE.Vector3(), dim = !!this.focusId;
     this.points.material.uniforms.uScale.value = this.map.renderer.domElement.height * 0.5;
@@ -427,8 +433,8 @@ export class FlowLayer {
       p.tr.at(p.s, q);
       const c = p.dying > 0 ? COL.critical : COL[p.status] || COL.healthy;
       const mine = !dim || p.tr.agent === this.focusId;
-      let alpha = p.off ? 0 : mine ? 1 : 0.08, size = 5.2;
-      if (p.dying > 0) { alpha *= p.dying / 0.9; size = 5.2 + (0.9 - p.dying) * 9; q.y += (0.9 - p.dying) * 1.5; }
+      let alpha = p.off ? 0 : mine ? FLOW.alpha : 0.06, size = FLOW.size;
+      if (p.dying > 0) { alpha *= p.dying / 0.9; size = FLOW.size + (0.9 - p.dying) * FLOW.spark; q.y += (0.9 - p.dying) * 1.5; }
       const fadeIn = Math.min(1, p.s / 2);
       this.pPos[i * 3] = q.x; this.pPos[i * 3 + 1] = q.y; this.pPos[i * 3 + 2] = q.z;
       this.pCol[i * 3] = c.r; this.pCol[i * 3 + 1] = c.g; this.pCol[i * 3 + 2] = c.b;
