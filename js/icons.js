@@ -1,0 +1,37 @@
+// Line icons (24 x 24, stroke = currentColor).
+const svg = (body, sw = 2) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
+
+export const ICON = {
+  roomDevice: svg('<rect x="3" y="5" width="18" height="11" rx="1.5"/><path d="M8 20h8M12 16v4"/><circle cx="12" cy="3.2" r=".6" fill="currentColor"/>'),
+  people: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14.5 14.6c.8-.4 1.6-.6 2.5-.6 2.2 0 3.9 1.4 4.4 4"/>'),
+  switch: svg('<rect x="2.5" y="7" width="19" height="10" rx="1.5"/><path d="M6 11h.01M9 11h.01M12 11h.01M15 11h.01M18 11h.01M6 14h12"/>'),
+  router: svg('<rect x="3" y="12" width="18" height="7" rx="1.5"/><path d="M7 15.5h.01M10.5 15.5h.01M8.5 9.5a5 5 0 0 1 7 0M6 7a8.5 8.5 0 0 1 12 0"/>'),
+  cafeteria: svg('<path d="M7 3v8M5 3v4a2 2 0 0 0 4 0V3M7 11v10M17 3c-1.7 0-3 2-3 5s1.3 4 3 4v9"/>'),
+  restroom: svg('<circle cx="7" cy="4.5" r="1.6"/><circle cx="17" cy="4.5" r="1.6"/><path d="M5 9h4l-.6 5H5.6zM6 14v6M8 14v6M15 9h4l1.5 7h-7zM16 16v4M18 16v4M12 3v18"/>'),
+  stairs: svg('<path d="M3 20h5v-5h5v-5h5V5h3"/>'),
+  elevator: svg('<rect x="4" y="3" width="16" height="18" rx="1.5"/><path d="M12 3v18M7.5 10l1.5-2 1.5 2M13.5 14l1.5 2 1.5-2"/>'),
+  helpdesk: svg('<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="2.5" y="13" width="4" height="6" rx="1.5"/><rect x="17.5" y="13" width="4" height="6" rx="1.5"/><path d="M19.5 19c0 1.5-1.5 2.5-4 2.5H13"/>'),
+  lounge: svg('<path d="M5 11V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3"/><path d="M3 13a2 2 0 0 1 4 0v2h10v-2a2 2 0 0 1 4 0v5H3zM6 18v2M18 18v2"/>'),
+  coffee: svg('<path d="M4 9h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M8 2.5c-.8 1 .8 2 0 3.5M12 2.5c-.8 1 .8 2 0 3.5"/>'),
+  printer: svg('<path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M7 14h10v7H7z"/>'),
+  search: svg('<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>', 2.2),
+  reset: svg('<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3.5 4v4.5H8"/>', 2.2),
+  chevron: svg('<path d="m6 9 6 6 6-6"/>', 2.4),
+  close: svg('<path d="M6 6l12 12M18 6 6 18"/>', 2.2),
+  pin: svg('<path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>'),
+  eye: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  eyeOff: svg('<path d="M3 3l18 18M10.6 5.1A10.4 10.4 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4.1M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7a9.6 9.6 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/>'),
+  latency: svg('<circle cx="12" cy="13" r="8"/><path d="M12 13l3.5-3.5M12 2.5v2.5M9.5 2.5h5"/>'),
+  loss: svg('<path d="M4 18h3l2-6 3 9 3-15 2 12h3"/>'),
+  jitter: svg('<path d="M3 12h3l2-5 3 10 2-7 2 4 2-2h4"/>'),
+  agents: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>'),
+  bell: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>'),
+  play: svg('<path d="M7 4.5v15l12.5-7.5z"/>', 2),
+  te: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></svg>',
+};
+
+/** The Cisco "bridge" mark: 9 bars of the classic logo. */
+export const CISCO_MARK = '<svg viewBox="0 0 72 38" aria-label="Cisco" fill="currentColor">'
+  + [[0, 14, 10], [8, 8, 22], [16, 0, 38], [24, 8, 22], [32, 14, 10], [40, 8, 22], [48, 0, 38], [56, 8, 22], [64, 14, 10]]
+    .map(([x, y, h]) => `<rect x="${x + 1}" y="${y}" width="4.2" height="${h}" rx="2.1"/>`).join('')
+  + '</svg>';

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ThousandEyes Agents · Smart Workspaces</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/spaces.css?v=1">
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="map" id="map"></div>
+
+    <header class="top">
+      <div class="card brand">
+        <span class="cisco" id="ciscoMark"></span>
+        <span class="brand-div"></span>
+        <div class="where"><small id="siteName">Building 10</small><b id="levelName">Level 1</b></div>
+        <button class="drop" id="levelBtn" aria-label="Choose floor" aria-expanded="false"></button>
+        <div class="level-menu" id="levelMenu" hidden></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="card when">
+        <div class="when-time"><small id="date"></small><b><i class="live-dot"></i><span id="time"></span></b></div>
+        <div class="when-wx"><span class="wx-ic" id="wxIcon"></span><b id="wxTemp">--°F</b></div>
+        <div class="when-city"><b id="city">San Francisco, CA</b><small id="wxText">&nbsp;</small></div>
+      </div>
+      <button class="card help" id="helpBtn"><span>How do I<br>use this?</span><i class="help-art" aria-hidden="true"></i></button>
+    </header>
+
+    <aside class="left">
+      <section class="card stat" id="agentsCard">
+        <div class="stat-head"><b class="big" id="agentTotal">0</b><span class="stat-title">ThousandEyes Agents<br>on this floor</span><button class="hide-btn" id="hideBtn"></button></div>
+        <div class="tiles" id="agentTiles"></div>
+      </section>
+      <section class="card stat" id="netCard">
+        <div class="stat-head"><b class="big" id="testTotal">0</b><span class="stat-title">Service Tests<br>running now</span></div>
+        <div class="tiles" id="testTiles"></div>
+      </section>
+      <section class="card onfloor">
+        <h3>On This Floor:</h3>
+        <div class="poi-grid" id="poiGrid"></div>
+      </section>
+      <section class="card qr-card">
+        <div class="qr-text"><b>Navigate<br>on phone</b><small>Scan the QR code to take this agent map with you.</small><span class="qr-tap">Tap to Expand</span></div>
+        <div class="qr" id="qr"></div>
+      </section>
+    </aside>
+
+    <section class="detail" id="detail" hidden aria-live="polite"></section>
+
+    <div class="alert-pill" id="alertPill" hidden></div>
+
+    <nav class="dock">
+      <button class="dock-search" id="searchBtn"><span id="icSearch"></span>Search</button>
+      <span class="dock-sep"></span>
+      <button class="dock-where" id="whereBtn"><span class="mascot" aria-hidden="true"></span>Where am I ?</button>
+      <span class="dock-sep"></span>
+      <button class="dock-reset" id="resetBtn"><span id="icReset"></span>Reset</button>
+    </nav>
+
+    <div class="powered" id="powered">
+      <span class="pw-spaces"><i></i><span><small>CISCO</small>SPACES</span></span>
+      <span class="pw-sep"></span>
+      <span class="pw-te"><span class="te-dot"></span><span><small>CISCO</small>ThousandEyes</span></span>
+      <button class="pw-src" id="srcBtn" title="Data source"></button>
+    </div>
+
+    <div class="search-pop" id="searchPop" hidden>
+      <div class="search-box"><span id="icSearch2"></span><input id="searchInput" placeholder="Search rooms, agents or services" autocomplete="off"><button class="x" id="searchClose" aria-label="Close"></button></div>
+      <div class="search-list" id="searchList"></div>
+    </div>
+
+    <div class="sheet" id="sheet" hidden></div>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <script type="module" src="js/app.js?v=1"></script>
+</body>
+</html>

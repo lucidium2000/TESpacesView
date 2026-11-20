@@ -1,0 +1,16 @@
+{
+  "_readme": "Copy to sites/lab.json and fill in. Open the app with ?data=te&site=lab. The API token is NOT stored here: enter it on the device (Mock data / Live button, bottom right).",
+  "proxy": "https://te-proxy.YOUR-SUBDOMAIN.workers.dev",
+  "aid": "",
+  "window": "2h",
+  "tests": [
+    { "id": "webex", "name": "Webex Meetings", "target": "meet.webex.com", "kind": "enterprise", "testId": "0000000" },
+    { "id": "m365", "name": "Microsoft 365", "target": "outlook.office365.com", "kind": "enterprise", "testId": "0000000" },
+    { "id": "webex", "name": "Webex Meetings", "target": "meet.webex.com", "kind": "endpoint", "testId": "0000000" }
+  ],
+  "agents": {
+    "ent-c9300-idf1": "Enterprise Agent name in your tenant",
+    "ent-mx-mdf": "Enterprise Agent name in your tenant",
+    "ea-newyork": "Endpoint agent computer name (the RoomOS device)"
+  }
+}
