@@ -26,9 +26,7 @@ svg { display: block; }
 /* ── Top bar ── */
 .top { position: absolute; top: 1.2rem; left: 1.2rem; right: 1.2rem; height: 5.4rem; display: flex; gap: .7rem; z-index: 5; }
 .brand { position: relative; width: 21.2rem; display: flex; align-items: center; padding: 0 1rem 0 1.3rem; gap: 1rem; }
-.cisco { width: 3.6rem; color: #fff; }
-.cisco svg { width: 100%; height: auto; }
-.cisco-word { display: block; text-align: center; font-weight: 700; font-size: .62rem; letter-spacing: .32em; margin-top: .15rem; padding-left: .3em; }
+.cisco { width: 4.6rem; height: auto; flex: none; }
 .brand-div { width: 1px; height: 3rem; background: var(--line); }
 .where { flex: 1; display: flex; flex-direction: column; line-height: 1.15; }
 .where small { font-size: .9rem; color: var(--text); font-weight: 500; }
@@ -147,12 +145,9 @@ svg { display: block; }
 .mascot { width: 2.4rem; height: 2.4rem; margin: -.3rem 0; border-radius: 50%; background: radial-gradient(circle at 50% 38%, #b7f5c9 0 22%, transparent 23%), radial-gradient(circle at 50% 75%, #4cc38a 0 45%, transparent 46%), #1f6f53; box-shadow: 0 0 0 .15rem #2fd08a inset; }
 
 .powered { position: absolute; right: 1.2rem; bottom: 1.4rem; z-index: 5; display: flex; align-items: center; gap: .9rem; padding: .7rem 1.1rem; border-radius: .6rem; background: rgba(24, 28, 35, .95); border: 1px solid var(--line); }
-.powered small { display: block; font-size: .5rem; letter-spacing: .25em; font-weight: 700; color: #d7dde8; }
-.pw-spaces, .pw-te { display: flex; align-items: center; gap: .45rem; font-weight: 700; font-size: .95rem; letter-spacing: .06em; line-height: 1.05; }
-.pw-te { letter-spacing: 0; }
-.pw-spaces i { width: 1.7rem; height: 1.7rem; border-radius: 50%; background: conic-gradient(from 200deg, #00bceb, #6cc04a, #00bceb, #0d8bd9, #00bceb); -webkit-mask: radial-gradient(circle, transparent 34%, #000 35%); mask: radial-gradient(circle, transparent 34%, #000 35%); }
-.te-dot { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: .2rem solid #fff; display: grid; place-items: center; }
-.te-dot::after { content: ''; width: .55rem; height: .55rem; border-radius: 50%; background: #fff; }
+.pw-by { font-size: .72rem; color: var(--muted); font-weight: 500; }
+.pw-spaces { height: 2rem; width: auto; }
+.pw-te { height: 1.4rem; width: auto; }
 .pw-sep { width: 1px; height: 1.8rem; background: var(--line); }
 .pw-src { border: 1px solid var(--line); background: #2a303b; border-radius: 999px; font-size: .68rem; font-weight: 600; padding: .25rem .6rem; color: var(--muted); }
 .pw-src[data-live="1"] { color: #a7f3c0; border-color: rgba(108, 192, 74, .5); }

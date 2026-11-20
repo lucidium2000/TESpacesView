@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-  <link rel="stylesheet" href="css/spaces.css?v=1">
+  <link rel="stylesheet" href="css/spaces.css?v=3">
 </head>
 <body>
   <div class="stage" id="stage">
@@ -15,7 +15,7 @@
 
     <header class="top">
       <div class="card brand">
-        <span class="cisco" id="ciscoMark"></span>
+        <img class="cisco" src="assets/cisco-white.png" alt="Cisco">
         <span class="brand-div"></span>
         <div class="where"><small id="siteName">Building 10</small><b id="levelName">Level 1</b></div>
         <button class="drop" id="levelBtn" aria-label="Choose floor" aria-expanded="false"></button>
@@ -62,9 +62,10 @@
     </nav>
 
     <div class="powered" id="powered">
-      <span class="pw-spaces"><i></i><span><small>CISCO</small>SPACES</span></span>
+      <span class="pw-by">Powered by:</span>
+      <img class="pw-spaces" src="assets/cisco-spaces.png" alt="Cisco Spaces">
       <span class="pw-sep"></span>
-      <span class="pw-te"><span class="te-dot"></span><span><small>CISCO</small>ThousandEyes</span></span>
+      <img class="pw-te" src="assets/thousandeyes.png" alt="Cisco ThousandEyes">
       <button class="pw-src" id="srcBtn" title="Data source"></button>
     </div>
 
@@ -76,6 +77,6 @@
     <div class="sheet" id="sheet" hidden></div>
     <div class="toast" id="toast" hidden></div>
   </div>
-  <script type="module" src="js/app.js?v=1"></script>
+  <script type="module" src="js/app.js?v=2"></script>
 </body>
 </html>

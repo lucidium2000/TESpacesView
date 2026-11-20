@@ -29,9 +29,3 @@ export const ICON = {
   play: svg('<path d="M7 4.5v15l12.5-7.5z"/>', 2),
   te: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></svg>',
 };
-
-/** The Cisco "bridge" mark: 9 bars of the classic logo. */
-export const CISCO_MARK = '<svg viewBox="0 0 72 38" aria-label="Cisco" fill="currentColor">'
-  + [[0, 14, 10], [8, 8, 22], [16, 0, 38], [24, 8, 22], [32, 14, 10], [40, 8, 22], [48, 0, 38], [56, 8, 22], [64, 14, 10]]
-    .map(([x, y, h]) => `<rect x="${x + 1}" y="${y}" width="4.2" height="${h}" rx="2.1"/>`).join('')
-  + '</svg>';

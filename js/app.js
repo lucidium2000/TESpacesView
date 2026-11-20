@@ -6,7 +6,7 @@ import { FloorMap } from './map3d.js';
 import { MockSource } from './data/mock.js';
 import { TESource, teToken } from './data/te.js';
 import { STATUS, LIMITS } from './data/shape.js';
-import { ICON, CISCO_MARK } from './icons.js';
+import { ICON } from './icons.js';
 
 const qs = new URLSearchParams(location.search);
 const $ = (id) => document.getElementById(id);
@@ -14,7 +14,6 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 const S = { snap: null, open: null, filter: null, hidden: false, running: null, alertIx: 0 };
 
 // ── Static bits ──
-$('ciscoMark').innerHTML = CISCO_MARK + '<span class="cisco-word">CISCO</span>';
 $('levelBtn').innerHTML = ICON.chevron;
 $('icSearch').innerHTML = ICON.search; $('icSearch2').innerHTML = ICON.search; $('icReset').innerHTML = ICON.reset;
 $('searchClose').innerHTML = ICON.close;
