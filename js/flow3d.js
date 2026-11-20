@@ -84,6 +84,9 @@ export class FlowLayer {
     this.group = new THREE.Group(); this.scene.add(this.group);
     this.glow = glowTexture(); this.ringTex = ringTexture();
     this.on = true; this.focusId = null; this.snap = null; this.traceRun = null;
+    // The internet side (ISPs, peering, services) shows only for the focused agent's path, unless ?sky=1.
+    this.sky = new URLSearchParams(location.search).get('sky') === '1';
+    this.skyKeys = new Set();
     this.built = false;
     this.buildGrid();
     this.buildSky();
@@ -133,7 +136,7 @@ export class FlowLayer {
       const logo = key === 'svc:webex' ? '<img class="svc-logo" src="assets/webex-mark.png" alt="" onerror="this.remove()">' : '';
       el.innerHTML = `<div class="svc-card">${logo}<b>${def.name}</b><small>${def.asn || ''}</small><em></em></div>`;
       const pin = this.map.addPin(el, v3(def.p).add(new THREE.Vector3(0, -size * 1.9, 0)));
-      this.nodes[key] = { g, halo, core, ring1, ring2, el, pin, size, kind, def };
+      this.nodes[key] = { key, g, halo, core, ring1, ring2, el, pin, size, kind, def };
     };
     for (const [k, d] of Object.entries(SKY.svc)) node('svc:' + k, d, 2.6, 'svc');
     for (const [k, d] of Object.entries(SKY.isp)) node('isp:' + k, d, 1.7, 'isp');
@@ -208,7 +211,7 @@ export class FlowLayer {
     for (const [id, r] of this.routes) this.tubes.set('a:' + id, tube(r.floor, 0.07, COL[r.agent.status] || COL.healthy, 0.22));
     const used = new Set();
     for (const r of this.routes.values()) for (const t of r.agent.tests) used.add(r.ispKey + ':' + t.id);
-    for (const k of used) if (this.uplinks.has(k)) this.tubes.set('u:' + k, tube(this.uplinks.get(k), 0.12, COL.healthy, 0.22));
+    for (const k of used) if (this.uplinks.has(k)) { const tb = tube(this.uplinks.get(k), 0.12, COL.healthy, 0.18); tb.visible = this.sky; this.tubes.set('u:' + k, tb); }
 
     // Tracks for particles: every agent x test.
     this.tracks = [];
@@ -343,14 +346,18 @@ export class FlowLayer {
     this.hopMarks = [];
     if (this.focusLine) { this.group.remove(this.focusLine); this.focusLine = null; }
     const r = id && this.routes && this.routes.get(id);
+    const svcKey = r ? ((r.agent.tests.find((t) => t.id === 'webex') || r.agent.tests[0] || {}).id || 'webex') : null;
+    this.skyKeys = new Set(r ? ['isp:' + r.ispKey, 'ixp', 'svc:' + svcKey] : []);
+    this.focusSvc = svcKey;
     for (const [k, tb] of this.tubes || []) {
-      const mine = r && (k === 'a:' + id || k.startsWith('u:' + r.ispKey + ':webex') || k === 'u:' + r.ispKey + ':' + (r.agent.tests[0] || {}).id);
-      tb.material.opacity = !r ? (k.startsWith('a:') ? 0.22 : 0.18) : mine ? 0.75 : 0.05;
+      const up = k.startsWith('u:');
+      const mine = r && (k === 'a:' + id || k === 'u:' + r.ispKey + ':' + svcKey);
+      tb.material.opacity = !r ? (up ? 0.18 : 0.22) : mine ? 0.75 : 0.05;
+      tb.visible = !up || this.sky || mine;
     }
     if (!r) return;
     const a = r.agent;
     // The hops in 3D: agent, (IDF), MDF, ISP, peering, service edge.
-    const svcKey = (a.tests.find((t) => t.id === 'webex') || a.tests[0] || {}).id || 'webex';
     const pos = [...r.hops, v3(SKY.isp[r.ispKey].p), v3(SKY.ixp.p), v3(SKY.svc[svcKey].p)];
     this.focusPts = pos;
     const hops = a.path && a.path.length ? a.path : [];
@@ -407,7 +414,8 @@ export class FlowLayer {
       n.ring1.rotation.z += dt * 0.6; n.ring2.rotation.z -= dt * 0.35; n.core.rotation.y += dt * 0.4;
       const pulse = 1 + 0.08 * Math.sin(t * 2 + n.size);
       n.halo.scale.setScalar(n.size * 3.2 * pulse * (n.status === 'critical' ? 1 + 0.25 * Math.abs(Math.sin(t * 3)) : 1));
-      n.g.visible = this.on; n.pin.off = !this.on || n.pin.off && false;
+      const show = this.on && (this.sky || this.skyKeys.has(n.key));
+      n.g.visible = show; n.pin.off = !show;
     }
     if (!this.built) return;
     this.group.visible = this.on;
@@ -429,13 +437,16 @@ export class FlowLayer {
         p.s += p.speed * dt;
         if (p.drop > 0 && p.s >= p.drop) { p.dying = 0.9; p.s = p.drop; }
         if (p.s >= p.tr.len) this.spawn(p);
+        // Without the sky, traffic rises out of the MDF and fades away above the building.
+        else if (!this.sky && !this.upOk(p.tr) && p.s > p.tr.ispDist + 4) this.spawn(p);
       }
       p.tr.at(p.s, q);
       const c = p.dying > 0 ? COL.critical : COL[p.status] || COL.healthy;
       const mine = !dim || p.tr.agent === this.focusId;
       let alpha = p.off ? 0 : mine ? FLOW.alpha : 0.06, size = FLOW.size;
       if (p.dying > 0) { alpha *= p.dying / 0.9; size = FLOW.size + (0.9 - p.dying) * FLOW.spark; q.y += (0.9 - p.dying) * 1.5; }
-      const fadeIn = Math.min(1, p.s / 2);
+      let fadeIn = Math.min(1, p.s / 2);
+      if (!this.sky && !this.upOk(p.tr) && p.dying <= 0) fadeIn *= Math.max(0, Math.min(1, (p.tr.ispDist + 4 - p.s) / 7));
       this.pPos[i * 3] = q.x; this.pPos[i * 3 + 1] = q.y; this.pPos[i * 3 + 2] = q.z;
       this.pCol[i * 3] = c.r; this.pCol[i * 3 + 1] = c.g; this.pCol[i * 3 + 2] = c.b;
       this.pSize[i] = size * (p.tr.agent === this.focusId ? 1.5 : 1); this.pAlpha[i] = alpha * fadeIn;
@@ -452,6 +463,9 @@ export class FlowLayer {
       if (k >= 1) { this.traceRun = null; this.comet.visible = false; this.tail.forEach((sp) => { sp.visible = false; }); this.revealHops(99); }
     }
   }
+
+  /** Whether particles on this track carry on past the building (its uplink is on screen). */
+  upOk(tr) { return tr.agent === this.focusId && tr.test === this.focusSvc; }
 
   setOn(on) { this.on = on; this.map.setDark(on); for (const n of Object.values(this.nodes)) n.pin.off = !on; for (const h of this.hopPins || []) h.off = !on; }
 }

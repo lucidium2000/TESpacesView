@@ -19,7 +19,7 @@ const DARK = {
   0xc4cad4: 0x283447, 0xd7dce4: 0x31405a, 0xd8b98c: 0x3a485e, 0xb89a72: 0x2b3648, 0x5e9a52: 0x2c6e55, 0xdfe3e9: 0x1b2536,
   0xf4f4f4: 0x2c3a50, 0xf2f2f2: 0x2c3a50,
 };
-const DEFAULT_VIEW = { tx: 0, tz: -14, dist: 196, pitch: 0.86, bearing: -0.18 };
+const DEFAULT_VIEW = { tx: 0, tz: -3, dist: 172, pitch: 0.92, bearing: -0.2 };
 const PIN_BASE = 170;   // the camera distance at which pins are drawn at 1x
 
 export class FloorMap {
