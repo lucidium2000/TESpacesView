@@ -192,7 +192,7 @@ function openDetail(placeId) {
     </div>
     <div class="d-sec"><h4>Tests from this agent <small>Agent to Server · every 1 min</small></h4>
       <table class="tests"><tr><th>Service</th><th>Latency</th><th>Loss</th><th>Jitter</th></tr>
-      ${a.tests.map((t) => `<tr><td><span class="dot" style="background:${STATUS[t.status === 'nodata' ? 'offline' : t.status].color}"></span>${esc(t.name)}<small>${esc(t.target)}</small></td>
+      ${a.tests.map((t) => `<tr><td><span class="dot" style="background:${STATUS[t.status === 'nodata' ? 'offline' : t.status].color}"></span>${t.id === 'webex' ? '<img class="t-logo" src="assets/webex-mark.png" alt="">' : ''}${esc(t.name)}<small>${esc(t.target)}</small></td>
         <td class="${cls(statusOfOne(t.latency, LIMITS.latency))}">${fmt(t.latency, 'ms')}</td><td class="${cls(statusOfOne(t.loss, LIMITS.loss))}">${fmt(t.loss, '%', 1)}</td><td class="${cls(statusOfOne(t.jitter, LIMITS.jitter))}">${fmt(t.jitter, 'ms', 1)}</td></tr>`).join('')}
       </table></div>
     ${a.path && a.path.length ? `<div class="d-sec"><h4>Path to ${esc(main.name)} <small>Path Visualization · ${a.path.length} hops</small></h4>${pathVis(a.path, main)}</div>` : ''}

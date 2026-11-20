@@ -46,17 +46,17 @@ svg { display: block; }
 .kpi b { font-size: .9rem; font-weight: 700; }
 .kpi b em { font-style: normal; color: var(--muted); font-weight: 500; font-size: .78rem; margin-left: .2em; }
 
-.when { width: 25rem; display: flex; align-items: center; padding: 0 1.2rem; gap: 1.1rem; }
-.when-time { display: flex; flex-direction: column; text-align: right; line-height: 1.25; }
+.when { width: 30rem; flex: none; display: flex; align-items: center; padding: 0 1.2rem; gap: 1rem; }
+.when-time { flex: none; display: flex; flex-direction: column; text-align: right; line-height: 1.25; }
 .when-time small { font-size: .82rem; color: var(--text); font-weight: 500; white-space: nowrap; }
 .when-time b { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: .4rem; justify-content: flex-end; }
 .live-dot { width: .55rem; height: .55rem; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 .6rem var(--cyan); }
-.when-wx { display: flex; align-items: center; gap: .4rem; padding-left: 1.1rem; border-left: 1px solid var(--line); }
+.when-wx { flex: none; display: flex; align-items: center; gap: .4rem; padding-left: 1rem; border-left: 1px solid var(--line); }
 .wx-ic { width: 2.6rem; height: 2.6rem; }
 .wx-ic svg { width: 100%; height: 100%; }
 .when-wx b { font-size: 1.55rem; font-weight: 700; }
-.when-city { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
-.when-city b { font-size: 1rem; font-weight: 700; white-space: nowrap; }
+.when-city { flex: 1; display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.when-city b { font-size: .95rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .when-city small { font-size: .8rem; color: var(--muted); }
 
 .help { width: 11.5rem; position: relative; overflow: hidden; border: 0; text-align: left; padding: .8rem 1rem;
@@ -319,5 +319,6 @@ svg { display: block; }
 .dock-flow[aria-pressed="true"] .flow-ic i:nth-child(2) { animation-delay: .2s; }
 .dock-flow[aria-pressed="true"] .flow-ic i:nth-child(3) { animation-delay: .4s; }
 @keyframes flowdot { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
-.pw-webex { height: 1.9rem; width: auto; }
+.pw-webex { height: 1.7rem; width: auto; }
 .pin-svc .svc-logo { display: block; height: 1.5rem; width: auto; margin: 0 auto .15rem; }
+.tests .t-logo { height: 1rem; width: auto; vertical-align: -.2rem; margin-right: .35rem; }
